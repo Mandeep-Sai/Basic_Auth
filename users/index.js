@@ -44,4 +44,33 @@ router.post("/register", async (req, res) => {
   }
 });
 
+router.put("/changePassword/:id", async (req, res) => {
+  if (req.body.oldPassword && req.body.newPassword) {
+    const user = await userModel.findById(req.params.id);
+    const isAuthorized = await bcrypt.compare(
+      req.body.oldPassword,
+      user.password
+    );
+    if (isAuthorized) {
+      const plainPassword = req.body.newPassword;
+      password = await bcrypt.hash(plainPassword, 8);
+      await userModel.findByIdAndUpdate(req.params.id, password);
+    }
+  }
+});
+
+router.delete("/me", async (req, res) => {
+  const [username, password] = atob(
+    req.headers.authorization.split(" ")[1]
+  ).split(":");
+  const user = await userModel.find({ username });
+  const isAuthorized = await bcrypt.compare(password, user[0].password);
+  if (isAuthorized) {
+    await userModel.findOneAndDelete({ username });
+    res.send("deleted");
+  } else {
+    res.send("Unauthorized");
+  }
+});
+
 module.exports = router;
